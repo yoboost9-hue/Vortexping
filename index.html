@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vortex FPS для Roblox v2.1 — максимальный FPS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    :root {
+        --accent-blue: #00d4ff;
+        --accent-blue-light: #00ffff;
+        --accent-blue-dark: #0099ff;
+        --accent-purple: #6b5dff;
+        --accent-cyan: #00ffd1;
+        --accent-roblox: #ff4654;
+        --bg-base: #0a0e27;
+        --bg-dark: #050812;
+        --bg-panel: rgba(0, 212, 255, 0.05);
+        --glass-border: rgba(0, 212, 255, 0.15);
+        --text-dim: #7f8fa8;
+        --text-dimmer: #4a5568;
+        --radius-lg: 20px;
+        --radius-md: 14px;
+        --radius-sm: 10px;
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    html { scroll-behavior: smooth; }
+    ::selection { background: rgba(0, 212, 255, 0.4); color: #fff; }
+
+    ::-webkit-scrollbar { width: 12px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(to bottom, var(--accent-blue-dark), var(--accent-cyan));
+        border-radius: 10px;
+        border: 3px solid var(--bg-base);
+    }
+
+    body {
+        font-family: 'JetBrains Mono', monospace;
+        background: linear-gradient(135deg, var(--bg-dark) 0%, #0d1a3e 50%, var(--bg-dark) 100%);
+        color: #f0f4f8;
+        min-height: 100vh;
+        overflow-x: hidden;
+        position: relative;
+    }
+
+    @media (hover: hover) {
+        body { cursor: none; }
+        a, button, .faq-question { cursor: none; }
+    }
+
+    /* ===== 3D Perspective ===== */
+    .perspective {
+        perspective: 1200px;
+    }
+
+    /* ===== Кастомный курсор 3D ===== */
+    .cursor-dot, .cursor-ring {
+        position: fixed;
+        top: 0; left: 0;
+        pointer-events: none;
+        z-index: 9999;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+    }
+    .cursor-dot {
+        width: 8px;
+        height: 8px;
+        background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+        box-shadow: 0 0 15px var(--accent-blue), 0 0 30px rgba(0, 212, 255, 0.5);
+    }
+    .cursor-ring {
+        width: 40px;
+        height: 40px;
+        border: 2px solid rgba(0, 212, 255, 0.6);
+        transition: width 0.2s, height 0.2s, border-color 0.2s, background 0.2s;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3), inset 0 0 20px rgba(0, 212, 255, 0.1);
+    }
+    .cursor-ring.hovering {
+        width: 60px;
+        height: 60px;
+        background: rgba(0, 212, 255, 0.12);
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 40px rgba(0, 212, 255, 0.6), inset 0 0 30px rgba(0, 212, 255, 0.2);
+    }
+    @media (max-width: 900px) {
+        .cursor-dot, .cursor-ring { display: none; }
+    }
+
+    /* ===== Прелоадер ===== */
+    .preloader {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, var(--bg-dark), #0d1a3e);
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        transition: opacity 0.6s var(--ease), visibility 0.6s;
+    }
+    .preloader.hidden { opacity: 0; visibility: hidden; }
+
+    .loader-3d {
+        width: 80px;
+        height: 80px;
+        position: relative;
+        transform-style: preserve-3d;
+        animation: rotate3d 3s linear infinite;
+    }
+    @keyframes rotate3d {
+        0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+        100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
+    }
+
+    .loader-3d::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 3px solid transparent;
+        border-top-color: var(--accent-blue);
+        border-right-color: var(--accent-cyan);
+        border-radius: 50%;
+    }
+    .loader-3d::after {
+        content: '';
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        border: 2px solid transparent;
+        border-bottom-color: var(--accent-purple);
+        border-left-color: var(--accent-blue-dark);
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotateX(60deg);
+        animation: rotate3d-reverse 2s linear infinite;
+    }
+    @keyframes rotate3d-reverse {
+        0% { transform: translate(-50%, -50%) rotateX(60deg) rotateY(0deg); }
+        100% { transform: translate(-50%, -50%) rotateX(60deg) rotateY(-360deg); }
+    }
+
+    .loader-text {
+        font-size: 0.9rem;
+        color: var(--text-dim);
+        letter-spacing: 3px;
+        text-transform: uppercase;
+    }
+    .loader-text span { color: var(--accent-blue); }
+
+    /* ===== Прогресс-бар скролла ===== */
+    .scroll-progress {
+        position: fixed;
+        top: 0; left: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan), var(--accent-purple), var(--accent-blue));
+        z-index: 999;
+        width: 0%;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+        background-size: 200% auto;
+        animation: shimmer-progress 2s linear infinite;
+    }
+    @keyframes shimmer-progress {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* ===== Фоновые эффекты 3D ===== */
+    .glow-orb {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(140px);
+        opacity: 0.25;
+        z-index: -2;
+        pointer-events: none;
+        animation: float-3d 15s ease-in-out infinite;
+    }
+    .orb-1 {
+        width: 600px;
+        height: 600px;
+        background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+        top: -250px;
+        left: -150px;
+        animation: float-3d 20s ease-in-out infinite;
+    }
+    .orb-2 {
+        width: 550px;
+        height: 550px;
+        background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue-dark));
+        bottom: -150px;
+        right: -100px;
+        animation: float-3d 25s ease-in-out infinite reverse;
+    }
+    .orb-3 {
+        width: 450px;
+        height: 450px;
+        background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+        top: 40%;
+        left: 50%;
+        opacity: 0.12;
+        animation: float-3d 30s ease-in-out infinite;
+    }
+
+    @keyframes float-3d {
+        0%, 100% { transform: translate(0, 0) scale(1) rotateZ(0deg); }
+        50% { transform: translate(80px, 100px) scale(1.1) rotateZ(180deg); }
+    }
+
+    /* ===== Canvas для 3D частиц ===== */
+    #vortex-canvas-3d {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        opacity: 0.7;
+        pointer-events: none;
+        filter: blur(0.5px);
+    }
+
+    .spotlight {
+        position: fixed;
+        top: 0; left: 0;
+        width: 700px;
+        height: 700px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0, 212, 255, 0.1), transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+        transform: translate(-50%, -50%);
+        box-shadow: inset 0 0 100px rgba(0, 212, 255, 0.3);
+    }
+
+    .grain {
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    section { position: relative; z-index: 2; }
+
+    .reveal {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+        transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0) scale(1); }
+
+    /* ===== NAVBAR 3D ===== */
+    nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 22px 70px;
+        backdrop-filter: blur(25px);
+        background: linear-gradient(90deg, rgba(10, 14, 39, 0.3), rgba(13, 26, 62, 0.3));
+        border-bottom: 1px solid transparent;
+        transition: all 0.3s var(--ease);
+        transform-style: preserve-3d;
+    }
+    nav.scrolled {
+        background: linear-gradient(90deg, rgba(10, 14, 39, 0.8), rgba(13, 26, 62, 0.8));
+        border-bottom-color: var(--glass-border);
+        box-shadow: 0 10px 40px rgba(0, 212, 255, 0.1);
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 800;
+        font-size: 1.15rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        transform-style: preserve-3d;
+    }
+    .brand i {
+        color: var(--accent-roblox);
+        font-size: 1.3rem;
+        animation: spin-3d 4s linear infinite;
+        text-shadow: 0 0 20px var(--accent-roblox);
+    }
+    @keyframes spin-3d {
+        0% { transform: rotateX(0) rotateY(0) rotateZ(0); }
+        100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
+    }
+
+    .brand-name {
+        background: linear-gradient(90deg, #00d4ff, #00ffff, #6b5dff, #00d4ff);
+        background-size: 300% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: shimmer 4s linear infinite;
+    }
+    @keyframes shimmer {
+        0% { background-position: 0% center; }
+        100% { background-position: 300% center; }
+    }
+
+    .brand-roblox {
+        font-size: 0.65rem;
+        color: var(--accent-roblox);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 900;
+        margin-left: 8px;
+        padding: 4px 12px;
+        background: rgba(255, 70, 84, 0.2);
+        border: 1px solid var(--accent-roblox);
+        border-radius: 100px;
+        animation: pulse-roblox 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse-roblox {
+        0%, 100% { box-shadow: 0 0 10px rgba(255, 70, 84, 0.3); }
+        50% { box-shadow: 0 0 20px rgba(255, 70, 84, 0.6); }
+    }
+
+    .nav-links { display: flex; gap: 40px; list-style: none; }
+    .nav-links a {
+        color: var(--text-dim);
+        text-decoration: none;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        transition: all 0.3s;
+        position: relative;
+        text-transform: uppercase;
+    }
+    .nav-links a::after {
+        content: '';
+        position: absolute;
+        bottom: -8px; left: 0;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
+        transition: width 0.3s var(--ease);
+        box-shadow: 0 0 10px var(--accent-blue);
+    }
+    .nav-links a:hover { color: var(--accent-blue); }
+    .nav-links a:hover::after { width: 100%; }
+
+    .nav-cta {
+        padding: 10px 26px;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(107, 93, 255, 0.1));
+        border: 1.5px solid var(--accent-blue);
+        border-radius: 100px;
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: 700;
+        transition: all 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+    }
+    .nav-cta:hover {
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(107, 93, 255, 0.2));
+        box-shadow: 0 0 30px rgba(0, 212, 255, 0.6);
+        transform: translateY(-2px);
+    }
+
+    .burger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; }
+    .burger span { width: 24px; height: 2.5px; background: var(--accent-blue); border-radius: 3px; transition: 0.3s; }
+
+    /* ===== HERO 3D ===== */
+    header {
+        text-align: center;
+        padding: 120px 24px 60px;
+        position: relative;
+        overflow: hidden;
+        transform-style: preserve-3d;
+    }
+
+    header::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.05), transparent);
+        pointer-events: none;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 22px;
+        border-radius: 100px;
+        background: linear-gradient(135deg, rgba(255, 70, 84, 0.15), rgba(0, 212, 255, 0.1));
+        border: 1px solid rgba(255, 70, 84, 0.3);
+        font-size: 0.8rem;
+        color: var(--accent-blue);
+        margin-bottom: 32px;
+        backdrop-filter: blur(15px);
+        letter-spacing: 0.5px;
+        position: relative;
+        z-index: 3;
+        box-shadow: 0 8px 32px rgba(0, 212, 255, 0.1);
+    }
+    .badge .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent-roblox);
+        box-shadow: 0 0 12px var(--accent-roblox);
+        animation: pulse-dot 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    h1 {
+        font-size: clamp(2.4rem, 6vw, 4rem);
+        font-weight: 900;
+        line-height: 1.2;
+        max-width: 950px;
+        margin: 0 auto;
+        letter-spacing: -2px;
+        background: linear-gradient(135deg, #ffffff 20%, #a8d8ff 60%, var(--accent-blue) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        position: relative;
+        z-index: 3;
+        text-shadow: 0 20px 60px rgba(0, 212, 255, 0.2);
+        animation: float-hero 3s ease-in-out infinite;
+    }
+    @keyframes float-hero {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+    }
+
+    h1 .highlight {
+        background: linear-gradient(135deg, var(--accent-roblox), var(--accent-cyan));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 30px rgba(255, 70, 84, 0.4);
+    }
+
+    h1 .roblox-tag {
+        display: inline-block;
+        font-size: 0.5em;
+        background: linear-gradient(135deg, var(--accent-roblox), #ff6b7a);
+        padding: 8px 16px;
+        border-radius: 100px;
+        color: #fff;
+        font-weight: 900;
+        margin-left: 12px;
+        letter-spacing: 1px;
+        box-shadow: 0 8px 25px rgba(255, 70, 84, 0.4);
+        vertical-align: text-top;
+    }
+
+    .subtitle {
+        margin-top: 28px;
+        color: var(--text-dim);
+        font-size: 1.05rem;
+        max-width: 650px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.8;
+        position: relative;
+        z-index: 3;
+        min-height: 64px;
+        font-weight: 400;
+        backdrop-filter: blur(5px);
+        padding: 0 20px;
+    }
+    .typed-cursor {
+        display: inline-block;
+        width: 2px;
+        height: 1.2em;
+        background: var(--accent-blue);
+        margin-left: 3px;
+        animation: blink 0.7s step-end infinite;
+        box-shadow: 0 0 10px var(--accent-blue);
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .hero-actions {
+        display: flex;
+        justify-content: center;
+        gap: 18px;
+        margin-top: 50px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 3;
+    }
+
+    .btn-primary {
+        padding: 24px 60px;
+        font-family: inherit;
+        font-size: 1.2rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+        color: #fff;
+        background: linear-gradient(135deg, #ff6b7a, #ff4654);
+        border: none;
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        text-transform: uppercase;
+        cursor: pointer;
+        box-shadow: 0 15px 40px rgba(255, 70, 84, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        transition: all 0.3s var(--ease);
+        position: relative;
+        width: 100%;
+        max-width: 380px;
+        overflow: hidden;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        transform-style: preserve-3d;
+        border: 2px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-primary::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -75%;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+        transform: skewX(-20deg);
+        animation: shine-btn 3.5s ease-in-out infinite;
+    }
+    @keyframes shine-btn { 0% { left: -75%; } 40%, 100% { left: 130%; } }
+
+    .btn-primary:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 20px 50px rgba(255, 70, 84, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    .btn-primary.pulse {
+        animation: pulse-btn 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse-btn {
+        0%, 100% { box-shadow: 0 15px 40px rgba(255, 70, 84, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+        50% { box-shadow: 0 15px 60px rgba(255, 70, 84, 0.7), inset 0 2px 0 rgba(255, 255, 255, 0.5); }
+    }
+
+    .download-timer {
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-top: 12px;
+        font-size: 0.75rem;
+        color: var(--accent-roblox);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .btn-primary.cooldown + .download-timer {
+        opacity: 1;
+    }
+
+    .btn-ghost {
+        padding: 16px 36px;
+        border: 2px solid var(--accent-blue);
+        border-radius: var(--radius-md);
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 700;
+        background: rgba(0, 212, 255, 0.08);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s var(--ease);
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 8px 20px rgba(0, 212, 255, 0.15);
+    }
+    .btn-ghost:hover {
+        border-color: var(--accent-cyan);
+        background: rgba(0, 212, 255, 0.15);
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(0, 212, 255, 0.3);
+    }
+
+    .trust-row {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-top: 60px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 3;
+    }
+    .trust-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.82rem;
+        color: var(--text-dim);
+        padding: 12px 20px;
+        background: rgba(0, 212, 255, 0.06);
+        border-radius: 100px;
+        border: 1px solid rgba(0, 212, 255, 0.1);
+        backdrop-filter: blur(8px);
+        transition: all 0.3s;
+    }
+    .trust-item:hover {
+        background: rgba(0, 212, 255, 0.12);
+        border-color: rgba(0, 212, 255, 0.3);
+        transform: translateY(-2px);
+    }
+    .trust-item i {
+        color: var(--accent-cyan);
+        font-size: 1.1rem;
+        animation: float-icon 2s ease-in-out infinite;
+    }
+    @keyframes float-icon {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+    }
+
+    /* ===== MARQUEE ===== */
+    .marquee-wrap {
+        position: relative;
+        z-index: 2;
+        overflow: hidden;
+        padding: 35px 0;
+        border-top: 1px solid var(--glass-border);
+        border-bottom: 1px solid var(--glass-border);
+        background: linear-gradient(90deg, rgba(0, 212, 255, 0.02), rgba(107, 93, 255, 0.02));
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+        mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+    }
+    .marquee-track {
+        display: flex;
+        gap: 70px;
+        width: max-content;
+        animation: marquee 25s linear infinite;
+    }
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .marquee-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--text-dim);
+        font-size: 0.9rem;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .marquee-item i {
+        color: var(--accent-blue);
+        font-size: 1.1rem;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    /* ===== DOWNLOAD PANEL 3D ===== */
+    main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 80px 24px 130px;
+        perspective: 1200px;
+    }
+
+    .panel-wrap {
+        position: relative;
+        max-width: 700px;
+        width: 100%;
+        border-radius: var(--radius-lg);
+        padding: 3px;
+        background: conic-gradient(from 0deg, var(--accent-blue), var(--accent-cyan), var(--accent-purple), var(--accent-blue));
+        animation: rotateBorder-3d 6s linear infinite;
+        box-shadow: 0 0 60px rgba(0, 212, 255, 0.3), inset 0 0 60px rgba(0, 212, 255, 0.1);
+        transform-style: preserve-3d;
+    }
+    @keyframes rotateBorder-3d { to { transform: rotateZ(360deg); } }
+
+    .panel {
+        background: linear-gradient(135deg, rgba(13, 26, 62, 0.8), rgba(10, 14, 39, 0.9));
+        border-radius: calc(var(--radius-lg) - 3px);
+        padding: 56px 48px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(20px);
+        box-shadow: inset 0 1px 0 rgba(0, 212, 255, 0.2);
+    }
+
+    .panel::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--accent-blue), var(--accent-cyan), transparent);
+        opacity: 0.7;
+    }
+
+    .panel::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.05), transparent);
+        pointer-events: none;
+    }
+
+    .stats-row {
+        display: flex;
+        justify-content: center;
+        gap: 50px;
+        margin-bottom: 44px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 1;
+    }
+
+    .stat {
+        text-align: center;
+        padding: 20px;
+        background: rgba(0, 212, 255, 0.06);
+        border-radius: 14px;
+        border: 1px solid rgba(0, 212, 255, 0.12);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s;
+        transform: scale(1);
+        cursor: pointer;
+    }
+    .stat:hover {
+        background: rgba(0, 212, 255, 0.12);
+        border-color: rgba(0, 212, 255, 0.3);
+        transform: scale(1.08) translateY(-5px);
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: #fff;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 1px;
+        transition: all 0.3s;
+    }
+
+    .stat-value.blue { color: var(--accent-blue); }
+    .stat-value.cyan { color: var(--accent-cyan); }
+    .stat-value.roblox { color: var(--accent-roblox); }
+
+    .stat-value.increment {
+        animation: number-popup 0.6s ease-out;
+    }
+    @keyframes number-popup {
+        0% { transform: translateY(-20px); opacity: 0; }
+        50% { color: var(--accent-roblox); }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+
+    .stat-label {
+        font-size: 0.72rem;
+        color: var(--text-dim);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-top: 8px;
+        font-weight: 600;
+    }
+
+    .stat-icon {
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+        color: var(--accent-blue);
+        display: inline-block;
+        animation: float-icon 2s ease-in-out infinite;
+    }
+
+    .download-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 26px 64px;
+        font-family: inherit;
+        font-size: 1.25rem;
+        font-weight: 900;
+        letter-spacing: 1px;
+        color: #fff;
+        background: linear-gradient(135deg, #ff6b7a 0%, #ff4654 50%, #ff2d3a 100%);
+        border: none;
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        text-transform: uppercase;
+        box-shadow: 0 18px 50px rgba(255, 70, 84, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.4);
+        transition: all 0.3s var(--ease);
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        overflow: hidden;
+        isolation: isolate;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        transform-style: preserve-3d;
+    }
+
+    .download-btn .shine {
+        position: absolute;
+        top: 0;
+        left: -75%;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+        transform: skewX(-20deg);
+        animation: shine-glow 3.5s ease-in-out infinite;
+    }
+    @keyframes shine-glow { 0% { left: -75%; } 40%, 100% { left: 130%; } }
+
+    .download-btn:hover:not(:disabled) {
+        transform: translateY(-6px) scale(1.03);
+        box-shadow: 0 24px 70px rgba(255, 70, 84, 0.7), inset 0 3px 0 rgba(255, 255, 255, 0.5);
+        letter-spacing: 2px;
+    }
+
+    .download-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: scale(0.98);
+    }
+
+    .download-btn.pulse {
+        animation: pulse-download 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse-download {
+        0%, 100% { box-shadow: 0 18px 50px rgba(255, 70, 84, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.4); }
+        50% { box-shadow: 0 18px 70px rgba(255, 70, 84, 0.8), inset 0 3px 0 rgba(255, 255, 255, 0.6); }
+    }
+
+    .download-btn.downloading {
+        animation: downloading-pulse 0.6s ease-out;
+    }
+    @keyframes downloading-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(0.95); }
+        100% { transform: scale(1); }
+    }
+
+    .meta-info {
+        margin-top: 30px;
+        font-size: 0.8rem;
+        color: var(--text-dim);
+        display: flex;
+        justify-content: center;
+        gap: 28px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 1;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .meta-info b { color: var(--accent-blue); font-weight: 700; }
+    .meta-info i { color: var(--accent-cyan); margin-right: 4px; }
+
+    /* ===== FEATURES ===== */
+    .section-title {
+        text-align: center;
+        margin-bottom: 64px;
+        padding: 0 24px;
+    }
+    .section-tag {
+        font-size: 0.78rem;
+        color: var(--accent-roblox);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+        font-weight: 700;
+    }
+    .section-title h2 {
+        font-size: 2.4rem;
+        font-weight: 900;
+        letter-spacing: -1px;
+        background: linear-gradient(135deg, #ffffff, var(--accent-blue));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .section-title p {
+        color: var(--text-dim);
+        margin-top: 14px;
+        font-size: 0.95rem;
+        max-width: 520px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.7;
+    }
+
+    .features-section { padding: 50px 24px 120px; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; max-width: 1200px; margin: 0 auto; }
+
+    .feature-card {
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.08), rgba(107, 93, 255, 0.05));
+        border: 1.5px solid var(--glass-border);
+        border-radius: var(--radius-md);
+        padding: 36px 28px;
+        text-align: left;
+        transition: all 0.4s var(--ease);
+        backdrop-filter: blur(12px);
+        position: relative;
+        overflow: hidden;
+        transform-style: preserve-3d;
+        box-shadow: 0 10px 30px rgba(0, 212, 255, 0.08);
+    }
+
+    .feature-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255, 70, 84, 0.08), transparent 60%);
+        opacity: 0;
+        transition: opacity 0.4s;
+    }
+
+    .feature-card:hover {
+        border-color: rgba(255, 70, 84, 0.4);
+        transform: translateY(-10px) rotateX(5deg);
+        box-shadow: 0 25px 50px rgba(0, 212, 255, 0.2), 0 0 60px rgba(255, 70, 84, 0.15);
+    }
+    .feature-card:hover::before { opacity: 1; }
+
+    .feature-icon {
+        width: 54px;
+        height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(255, 70, 84, 0.2), rgba(0, 212, 255, 0.15));
+        margin-bottom: 24px;
+        position: relative;
+        z-index: 1;
+        border: 1px solid rgba(255, 70, 84, 0.3);
+        box-shadow: 0 8px 20px rgba(255, 70, 84, 0.15);
+    }
+    .feature-icon i {
+        color: var(--accent-roblox);
+        font-size: 1.5rem;
+    }
+
+    .feature-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        margin-bottom: 12px;
+        position: relative;
+        z-index: 1;
+        color: #fff;
+        letter-spacing: 0.5px;
+    }
+    .feature-desc {
+        font-size: 0.87rem;
+        color: var(--text-dim);
+        line-height: 1.7;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ===== HOW IT WORKS ===== */
+    .how-section { padding: 50px 24px 120px; }
+    .steps {
+        display: flex;
+        justify-content: center;
+        gap: 0;
+        max-width: 1000px;
+        margin: 0 auto;
+        position: relative;
+    }
+    .steps::before {
+        content: '';
+        position: absolute;
+        top: 30px;
+        left: 15%;
+        right: 15%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--glass-border) 20%, var(--glass-border) 80%, transparent);
+        z-index: 0;
+    }
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+        padding: 0 24px;
+    }
+    .step-num {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(255, 70, 84, 0.2), rgba(0, 212, 255, 0.15));
+        border: 2px solid var(--accent-roblox);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        color: var(--accent-roblox);
+        box-shadow: 0 0 0 8px var(--bg-base), 0 0 30px rgba(255, 70, 84, 0.3);
+        font-size: 1.4rem;
+        transition: all 0.3s;
+    }
+    .step:hover .step-num {
+        transform: scale(1.2) rotateZ(360deg);
+        background: linear-gradient(135deg, rgba(255, 70, 84, 0.35), rgba(0, 212, 255, 0.3));
+        box-shadow: 0 0 0 8px var(--bg-base), 0 0 50px rgba(255, 70, 84, 0.5);
+    }
+    .step-title {
+        font-weight: 800;
+        margin-bottom: 12px;
+        font-size: 1.05rem;
+        color: #fff;
+        letter-spacing: 0.5px;
+    }
+    .step-desc {
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        line-height: 1.65;
+        max-width: 240px;
+        margin: 0 auto;
+    }
+
+    /* ===== FAQ ===== */
+    .faq-section { padding: 50px 24px 120px; }
+    .faq-list { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+    .faq-item {
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.06), rgba(107, 93, 255, 0.04));
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        transition: all 0.3s;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 5px 15px rgba(0, 212, 255, 0.05);
+    }
+    .faq-item.open {
+        border-color: rgba(255, 70, 84, 0.4);
+        box-shadow: 0 10px 30px rgba(255, 70, 84, 0.15);
+    }
+    .faq-question {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 22px 26px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        user-select: none;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #fff;
+    }
+    .faq-item.open .faq-question {
+        color: var(--accent-roblox);
+    }
+    .faq-icon {
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+        position: relative;
+        transition: all 0.3s;
+    }
+    .faq-icon::before, .faq-icon::after {
+        content: '';
+        position: absolute;
+        background: var(--accent-roblox);
+        border-radius: 2px;
+    }
+    .faq-icon::before {
+        width: 14px;
+        height: 2px;
+        top: 10px;
+        left: 4px;
+    }
+    .faq-icon::after {
+        width: 2px;
+        height: 14px;
+        top: 4px;
+        left: 10px;
+        transition: transform 0.3s var(--ease);
+    }
+    .faq-item.open .faq-icon::after { transform: scaleY(0); }
+    .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.5s var(--ease); }
+    .faq-answer p {
+        padding: 0 26px 22px;
+        color: var(--text-dim);
+        font-size: 0.87rem;
+        line-height: 1.75;
+    }
+
+    /* ===== CTA BANNER 3D ===== */
+    .cta-banner {
+        margin: 0 24px 130px;
+        max-width: 1050px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 70px 50px;
+        border-radius: 28px;
+        text-align: center;
+        background: linear-gradient(135deg, rgba(255, 70, 84, 0.12), rgba(0, 212, 255, 0.08));
+        border: 2px solid rgba(255, 70, 84, 0.25);
+        position: relative;
+        overflow: hidden;
+        transform-style: preserve-3d;
+        box-shadow: 0 20px 60px rgba(255, 70, 84, 0.15), inset 0 1px 0 rgba(255, 70, 84, 0.3);
+    }
+    .cta-banner::before {
+        content: '';
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: linear-gradient(135deg, var(--accent-roblox), var(--accent-purple));
+        filter: blur(120px);
+        opacity: 0.15;
+        top: -150px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .cta-banner h3 {
+        font-size: 2rem;
+        font-weight: 900;
+        margin-bottom: 16px;
+        position: relative;
+        background: linear-gradient(135deg, #fff, var(--accent-roblox));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -1px;
+    }
+    .cta-banner p {
+        color: var(--text-dim);
+        margin-bottom: 36px;
+        position: relative;
+        font-size: 0.95rem;
+        line-height: 1.7;
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+        padding: 70px 70px 35px;
+        border-top: 1px solid var(--glass-border);
+        position: relative;
+        z-index: 2;
+        background: linear-gradient(135deg, rgba(10, 14, 39, 0.3), rgba(13, 26, 62, 0.3));
+    }
+    .footer-grid {
+        display: grid;
+        grid-template-columns: 1.8fr 1fr 1fr 1fr;
+        gap: 50px;
+        max-width: 1200px;
+        margin: 0 auto 45px;
+    }
+    .footer-brand-desc {
+        color: var(--text-dim);
+        font-size: 0.85rem;
+        line-height: 1.8;
+        margin-top: 18px;
+        max-width: 300px;
+    }
+    .footer-col h4 {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-dimmer);
+        margin-bottom: 20px;
+        font-weight: 800;
+    }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .footer-col a {
+        color: var(--text-dim);
+        text-decoration: none;
+        font-size: 0.87rem;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .footer-col a:hover {
+        color: var(--accent-roblox);
+        transform: translateX(4px);
+    }
+    .footer-social { display: flex; gap: 14px; margin-top: 22px; }
+    .footer-social a {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid var(--glass-border);
+        border-radius: 50%;
+        color: var(--text-dim);
+        transition: all 0.3s;
+        background: rgba(0, 212, 255, 0.06);
+    }
+    .footer-social a:hover {
+        color: var(--accent-roblox);
+        border-color: var(--accent-roblox);
+        background: rgba(255, 70, 84, 0.15);
+        transform: translateY(-5px) rotateZ(20deg);
+        box-shadow: 0 10px 25px rgba(255, 70, 84, 0.2);
+    }
+    .footer-bottom {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding-top: 30px;
+        border-top: 1px solid var(--glass-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 0.77rem;
+        color: var(--text-dimmer);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .back-to-top {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(255, 70, 84, 0.15), rgba(0, 212, 255, 0.1));
+        border: 2px solid var(--accent-roblox);
+        backdrop-filter: blur(12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s var(--ease);
+        z-index: 90;
+        box-shadow: 0 10px 30px rgba(255, 70, 84, 0.2);
+    }
+    .back-to-top.visible {
+        opacity: 1;
+        pointer-events: all;
+    }
+    .back-to-top:hover {
+        background: linear-gradient(135deg, rgba(255, 70, 84, 0.25), rgba(0, 212, 255, 0.2));
+        border-color: var(--accent-roblox);
+        transform: translateY(-5px) rotateZ(-20deg);
+        box-shadow: 0 15px 50px rgba(255, 70, 84, 0.4);
+    }
+    .back-to-top i { color: var(--accent-roblox); font-size: 1.3rem; }
+
+    @media (max-width: 900px) {
+        .features { grid-template-columns: 1fr; }
+        .footer-grid { grid-template-columns: 1fr 1fr; }
+        .steps { flex-direction: column; gap: 50px; }
+        .steps::before { display: none; }
+        nav { padding: 18px 40px; }
+    }
+
+    @media (max-width: 640px) {
+        nav { padding: 16px 20px; }
+        .nav-links { display: none; }
+        .burger { display: flex; }
+        header { padding: 80px 20px 40px; }
+        .panel { padding: 36px 24px; }
+        .stats-row { gap: 28px; flex-direction: column; }
+        .stat { width: 100%; }
+        footer { padding: 50px 24px 24px; }
+        .footer-grid { grid-template-columns: 1fr; gap: 30px; }
+        .footer-bottom { flex-direction: column; text-align: center; }
+        .cta-banner { padding: 50px 28px; margin: 0 16px 80px; }
+        h1 .roblox-tag {
+            display: block;
+            margin-left: 0;
+            margin-top: 12px;
+        }
+    }
+</style>
+</head>
+<body>
+
+    <div class="preloader" id="preloader">
+        <div class="loader-3d"></div>
+        <div class="loader-text">Loading <span>VORTEX FPS</span>...</div>
+    </div>
+
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+
+    <div class="scroll-progress" id="scrollProgress"></div>
+    <div class="spotlight" id="spotlight"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+    <div class="grain"></div>
+
+    <canvas id="vortex-canvas-3d"></canvas>
+
+    <nav id="navbar">
+        <div class="brand">
+            <i class="fas fa-cube"></i>
+            <span class="brand-name">VORTEX FPS</span>
+            <span class="brand-roblox">For Roblox</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#features">Возможности</a></li>
+            <li><a href="#how">Как это работает</a></li>
+            <li><a href="#faq">FAQ</a></li>
+        </ul>
+        <a href="#download" class="nav-cta">Скачать</a>
+        <button class="burger" id="burger"><span></span><span></span><span></span></button>
+    </nav>
+
+    <header>
+        <div class="badge reveal">
+            <span class="dot"></span>
+            Официально для Roblox · Проверено · Безопасно 100%
+        </div>
+        <h1 class="reveal">
+            Vortex FPS — <span class="highlight">максимальный FPS для Roblox</span>
+            <span class="roblox-tag">ROBLOX OFFICIAL</span>
+        </h1>
+        <p class="subtitle reveal" id="typedSubtitle"></p>
+
+        <div class="hero-actions reveal">
+            <button class="btn-primary pulse" id="heroDownloadBtn">
+                <i class="fas fa-download"></i>
+                Скачать сейчас
+            </button>
+            <a href="#features" class="btn-ghost">
+                Узнать подробнее
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="trust-row reveal">
+            <div class="trust-item"><i class="fas fa-shield-alt"></i> Windows 10 / 11</div>
+            <div class="trust-item"><i class="fas fa-zap"></i> +200% FPS</div>
+            <div class="trust-item"><i class="fas fa-cog"></i> Для Roblox</div>
+            <div class="trust-item"><i class="fas fa-microchip"></i> 45 MB</div>
+        </div>
+    </header>
+
+    <div class="marquee-wrap">
+        <div class="marquee-track">
+            <div class="marquee-item"><i class="fas fa-gamepad"></i> Roblox Optimized</div>
+            <div class="marquee-item"><i class="fas fa-wind"></i> RAM Cleanup</div>
+            <div class="marquee-item"><i class="fas fa-lock"></i> 100% Безопасно</div>
+            <div class="marquee-item"><i class="fas fa-clock"></i> 1-Click Boost</div>
+            <div class="marquee-item"><i class="fas fa-chart-line"></i> +200% FPS</div>
+            <div class="marquee-item"><i class="fas fa-star"></i> 5-Star Rated</div>
+            <div class="marquee-item"><i class="fas fa-cube"></i> Roblox Pro</div>
+
+            <div class="marquee-item"><i class="fas fa-gamepad"></i> Roblox Optimized</div>
+            <div class="marquee-item"><i class="fas fa-wind"></i> RAM Cleanup</div>
+            <div class="marquee-item"><i class="fas fa-lock"></i> 100% Безопасно</div>
+            <div class="marquee-item"><i class="fas fa-clock"></i> 1-Click Boost</div>
+            <div class="marquee-item"><i class="fas fa-chart-line"></i> +200% FPS</div>
+            <div class="marquee-item"><i class="fas fa-star"></i> 5-Star Rated</div>
+            <div class="marquee-item"><i class="fas fa-cube"></i> Roblox Pro</div>
+        </div>
+    </div>
+
+    <main id="download">
+        <div class="panel-wrap reveal">
+            <div class="panel">
+                <div class="stats-row">
+                    <div class="stat">
+                        <div class="stat-icon"><i class="fas fa-download"></i></div>
+                        <div class="stat-value roblox" id="downloadCounter">12,532</div>
+                        <div class="stat-label">Скачиваний</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-icon"><i class="fas fa-percent"></i></div>
+                        <div class="stat-value cyan" data-count="99.9" data-suffix="%">0%</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-icon"><i class="fas fa-tachometer-alt"></i></div>
+                        <div class="stat-value blue" data-count="45" data-suffix=" MB">0 MB</div>
+                        <div class="stat-label">Размер</div>
+                    </div>
+                </div>
+
+                <div style="position: relative;">
+                    <button class="download-btn pulse" id="mainDownloadBtn">
+                        <span class="shine"></span>
+                        <i class="fas fa-rocket"></i>
+                        СКАЧАТЬ ДЛЯ ROBLOX
+                    </button>
+                    <div class="download-timer" id="downloadTimer">
+                        <i class="fas fa-hourglass-half"></i> Ожидание: <span id="timerValue">0</span>с
+                    </div>
+                </div>
+
+                <div class="meta-info">
+                    <span><i class="fas fa-cube"></i> Версия: <b>2.1.5</b></span>
+                    <span><i class="fas fa-calendar"></i> Обновлено: <b>сегодня</b></span>
+                    <span><i class="fas fa-crown"></i> Лицензия: <b>Pro</b></span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <section class="features-section" id="features">
+        <div class="section-title reveal">
+            <div class="section-tag">Для Roblox</div>
+            <h2>Почему Vortex FPS?</h2>
+            <p>Специально разработано для максимальной производительности в Roblox</p>
+        </div>
+
+        <div class="features">
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fas fa-wind"></i></div>
+                <div class="feature-title">Очистка RAM</div>
+                <div class="feature-desc">Автоматически освобождает оперативную память от мусора Roblox. +500 МБ - 2 ГБ свободной памяти.</div>
+            </div>
+
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="feature-title">Оптимизация Roblox</div>
+                <div class="feature-desc">Специальные настройки именно под Roblox. +200 FPS в большинстве игр. Работает со всеми GPU.</div>
+            </div>
+
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fas fa-stopwatch"></i></div>
+                <div class="feature-title">Мгновенный буст</div>
+                <div class="feature-desc">Одна кнопка — мгновенное улучшение. Заметный прирост FPS прямо в Roblox за 1 клик.</div>
+            </div>
+
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fas fa-gamepad"></i></div>
+                <div class="feature-title">Режим Roblox</div>
+                <div class="feature-desc">Отключает все фоновые приложения при запуске Roblox. Максимальный приоритет процессу игры.</div>
+            </div>
+
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fas fa-cogs"></i></div>
+                <div class="feature-title">Автооптимизация</div>
+                <div class="feature-desc">Программа сама следит за Roblox. Автоматический буст каждые 30 минут без вашего участия.</div>
+            </div>
+
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                <div class="feature-title">100% Безопасно</div>
+                <div class="feature-desc">Проверено главным антивирусом. Не нарушает правила Roblox. Не содержит вирусов.</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-section" id="how">
+        <div class="section-title reveal">
+            <div class="section-tag">Начните за 2 минуты</div>
+            <h2>Как начать играть с максимальным FPS?</h2>
+            <p>Простые 3 шага от скачивания до первого буста</p>
+        </div>
+
+        <div class="steps">
+            <div class="step reveal">
+                <div class="step-num">1</div>
+                <div class="step-title">Скачайте</div>
+                <div class="step-desc">Нажмите кнопку выше. Файл скачается за 30 секунд на любой ПК.</div>
+            </div>
+            <div class="step reveal">
+                <div class="step-num">2</div>
+                <div class="step-title">Установите</div>
+                <div class="step-desc">Запустите установщик и следуйте инструкциям. Занимает ровно 1 минуту.</div>
+            </div>
+            <div class="step reveal">
+                <div class="step-num">3</div>
+                <div class="step-title">Запустите Roblox</div>
+                <div class="step-desc">Откройте Roblox — Vortex автоматически боостит FPS. Ощутите разницу сейчас!</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="faq-section" id="faq">
+        <div class="section-title reveal">
+            <div class="section-tag">Вопросы</div>
+            <h2>Частые вопросы о Vortex</h2>
+            <p>Всё что нужно знать перед установкой</p>
+        </div>
+
+        <div class="faq-list reveal">
+            <div class="faq-item">
+                <div class="faq-question">
+                    Это действительно бесплатно?
+                    <div class="faq-icon"></div>
+                </div>
+                <div class="faq-answer"><p>Да, полностью бесплатно. Базовая версия + Pro функции — всё без платежа. Без скрытых комиссий.</p></div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    Разве это не нарушает правила Roblox?
+                    <div class="faq-icon"></div>
+                </div>
+                <div class="faq-answer"><p>Нет, это абсолютно официально. Vortex только оптимизирует вашу систему, не вмешиваясь в саму игру.</p></div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    На сколько увеличится FPS?
+                    <div class="faq-icon"></div>
+                </div>
+                <div class="faq-answer"><p>Зависит от вашего ПК. В среднем +50-200 FPS. На слабых системах 30-100 FPS. На мощных 10-50 FPS прирост.</p></div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    Требуются ли права администратора?
+                    <div class="faq-icon"></div>
+                </div>
+                <div class="faq-answer"><p>Да, нужны права администратора для глубокой оптимизации системы. Это безопасно и необходимо.</p></div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    Как часто выходят обновления?
+                    <div class="faq-icon"></div>
+                </div>
+                <div class="faq-answer"><p>Каждую неделю новые обновления. Большие версии выходят раз в месяц с новыми фичами.</p></div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    Можно ли вернуть исходные настройки?
+                    <div class="faq-icon"></div>
+                </div>
+                <div class="faq-answer"><p>Да, в программе кнопка "Restore" которая вернёт всё обратно. Одна кнопка — всё восстановлено.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <div class="cta-banner reveal">
+        <h3>Готовы к 200+ FPS в Roblox?</h3>
+        <p>Присоединись к 12,000+ геймерам которые уже наслаждаются гладким геймплеем в Roblox</p>
+        <button class="btn-primary pulse" id="bannerDownloadBtn">
+            <i class="fas fa-rocket"></i>
+            СКАЧАТЬ VORTEX FPS
+        </button>
+    </div>
+
+    <footer>
+        <div class="footer-grid">
+            <div>
+                <div class="brand">
+                    <i class="fas fa-cube"></i>
+                    <span class="brand-name">VORTEX FPS</span>
+                    <span class="brand-roblox">For Roblox</span>
+                </div>
+                <p class="footer-brand-desc">Лучший FPS бустер для Roblox. Бесплатен, безопасен, работает. Специально оптимизирован под Roblox.</p>
+                <div class="footer-social">
+                    <a href="#" title="Discord"><i class="fab fa-discord"></i></a>
+                    <a href="#" title="YouTube"><i class="fab fa-youtube"></i></a>
+                    <a href="#" title="Telegram"><i class="fab fa-telegram"></i></a>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h4>Продукт</h4>
+                <ul>
+                    <li><a href="#features"><i class="fas fa-star"></i> Возможности</a></li>
+                    <li><a href="#download"><i class="fas fa-download"></i> Скачать</a></li>
+                    <li><a href="#"><i class="fas fa-history"></i> Версии</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Помощь</h4>
+                <ul>
+                    <li><a href="#faq"><i class="fas fa-question"></i> FAQ</a></li>
+                    <li><a href="#"><i class="fas fa-headset"></i> Поддержка</a></li>
+                    <li><a href="#"><i class="fas fa-book"></i> Гайды</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Правовое</h4>
+                <ul>
+                    <li><a href="#"><i class="fas fa-lock"></i> Конфиденциальность</a></li>
+                    <li><a href="#"><i class="fas fa-scroll"></i> Условия</a></li>
+                    <li><a href="#"><i class="fas fa-certificate"></i> Лицензия</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>© 2025 Vortex FPS — Official для Roblox</span>
+            <span>Сделано геймерами для геймеров</span>
+        </div>
+    </footer>
+
+    <div class="back-to-top" id="backToTop"><i class="fas fa-arrow-up"></i></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script>
+        // ===== Preloader =====
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('preloader').classList.add('hidden');
+            }, 800);
+        });
+
+        // ===== Кастомный курсор 3D =====
+        const cursorDot = document.getElementById('cursorDot');
+        const cursorRing = document.getElementById('cursorRing');
+        let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursorDot.style.left = mouseX + 'px';
+            cursorDot.style.top = mouseY + 'px';
+        });
+
+        function animateRing() {
+            ringX += (mouseX - ringX) * 0.18;
+            ringY += (mouseY - ringY) * 0.18;
+            cursorRing.style.left = ringX + 'px';
+            cursorRing.style.top = ringY + 'px';
+            requestAnimationFrame(animateRing);
+        }
+        animateRing();
+
+        document.querySelectorAll('a, button, .faq-question').forEach(el => {
+            el.addEventListener('mouseenter', () => cursorRing.classList.add('hovering'));
+            el.addEventListener('mouseleave', () => cursorRing.classList.remove('hovering'));
+        });
+
+        // ===== Прогресс-бар скролла =====
+        const scrollProgress = document.getElementById('scrollProgress');
+        window.addEventListener('scroll', () => {
+            const h = document.documentElement;
+            const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+            scrollProgress.style.width = scrolled + '%';
+        });
+
+        // ===== Navbar фон при скролле =====
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 25);
+        });
+
+        // ===== Кнопка "наверх" =====
+        const backToTop = document.getElementById('backToTop');
+        window.addEventListener('scroll', () => {
+            backToTop.classList.toggle('visible', window.scrollY > 600);
+        });
+        backToTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // ===== Spotlight + Parallax орбов =====
+        const spotlight = document.getElementById('spotlight');
+        const orb1 = document.querySelector('.orb-1');
+        const orb2 = document.querySelector('.orb-2');
+        const orb3 = document.querySelector('.orb-3');
+
+        document.addEventListener('mousemove', (e) => {
+            spotlight.style.left = e.clientX + 'px';
+            spotlight.style.top = e.clientY + 'px';
+
+            const xPct = (e.clientX / window.innerWidth - 0.5);
+            const yPct = (e.clientY / window.innerHeight - 0.5);
+
+            orb1.style.transform = `translate(${xPct * -40}px, ${yPct * -40}px)`;
+            orb2.style.transform = `translate(${xPct * 40}px, ${yPct * 40}px)`;
+            orb3.style.transform = `translate(calc(-50% + ${xPct * 50}px), calc(-50% + ${yPct * 50}px))`;
+        });
+
+        // ===== Reveal-анимация =====
+        const revealEls = document.querySelectorAll('.reveal');
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12 });
+        revealEls.forEach(el => revealObserver.observe(el));
+
+        // ===== Анимация счётчиков =====
+        const counters = document.querySelectorAll('[data-count]');
+        const counterObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    const target = parseFloat(el.dataset.count);
+                    const suffix = el.dataset.suffix || '';
+                    const isDecimal = target % 1 !== 0;
+                    let current = 0;
+                    const duration = 1800;
+                    const startTime = performance.now();
+
+                    function animate(now) {
+                        const progress = Math.min((now - startTime) / duration, 1);
+                        const eased = 1 - Math.pow(1 - progress, 3);
+                        current = target * eased;
+
+                        el.textContent = (isDecimal ? current.toFixed(1) : Math.floor(current)) + suffix;
+
+                        if (progress < 1) requestAnimationFrame(animate);
+                        else {
+                            el.textContent = (isDecimal ? target.toFixed(1) : target) + suffix;
+                        }
+                    }
+                    requestAnimationFrame(animate);
+                    counterObserver.unobserve(el);
+                }
+            });
+        }, { threshold: 0.6 });
+        counters.forEach(el => counterObserver.observe(el));
+
+        // ===== FAQ аккордеон =====
+        document.querySelectorAll('.faq-item').forEach(item => {
+            const question = item.querySelector('.faq-question');
+            const answer = item.querySelector('.faq-answer');
+
+            question.addEventListener('click', () => {
+                const isOpen = item.classList.contains('open');
+
+                document.querySelectorAll('.faq-item').forEach(i => {
+                    i.classList.remove('open');
+                    i.querySelector('.faq-answer').style.maxHeight = null;
+                });
+
+                if (!isOpen) {
+                    item.classList.add('open');
+                    answer.style.maxHeight = answer.scrollHeight + 'px';
+                }
+            });
+        });
+
+        // ===== Печатающийся текст =====
+        const typedText = "Специально оптимизирован для Roblox. Увеличивает FPS на 50-200 в зависимости от конфигурации. Очищает RAM, отключает фоновые процессы и дарует идеальный геймплей.";
+        const typedEl = document.getElementById('typedSubtitle');
+        let charIndex = 0;
+
+        function typeWriter() {
+            if (charIndex <= typedText.length) {
+                typedEl.innerHTML = typedText.slice(0, charIndex) + '<span class="typed-cursor">&nbsp;</span>';
+                charIndex++;
+                setTimeout(typeWriter, 20);
+            } else {
+                typedEl.innerHTML = typedText;
+            }
+        }
+        setTimeout(typeWriter, 1000);
+
+        // ===== МЕХАНИКА СКАЧИВАНИЯ с ЗАДЕРЖКОЙ 10 СЕКУНД И +1 СКАЧИВАНИЕ =====
+        const downloadCounter = document.getElementById('downloadCounter');
+        const mainDownloadBtn = document.getElementById('mainDownloadBtn');
+        const heroDownloadBtn = document.getElementById('heroDownloadBtn');
+        const bannerDownloadBtn = document.getElementById('bannerDownloadBtn');
+        const downloadTimer = document.getElementById('downloadTimer');
+        const timerValue = document.getElementById('timerValue');
+
+        let downloadCount = 12532;
+        let isCooldown = false;
+        let cooldownTime = 10;
+
+        const allDownloadBtns = [mainDownloadBtn, heroDownloadBtn, bannerDownloadBtn];
+
+        function startCooldown() {
+            isCooldown = true;
+            cooldownTime = 10;
+
+            // Отключаем все кнопки
+            allDownloadBtns.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('cooldown');
+            });
+
+            const cooldownInterval = setInterval(() => {
+                timerValue.textContent = cooldownTime;
+                cooldownTime--;
+
+                if (cooldownTime < 0) {
+                    clearInterval(cooldownInterval);
+                    isCooldown = false;
+
+                    // Включаем все кнопки
+                    allDownloadBtns.forEach(btn => {
+                        btn.disabled = false;
+                        btn.classList.remove('cooldown');
+                    });
+
+                    downloadTimer.style.opacity = '0';
+                }
+            }, 1000);
+        }
+
+        allDownloadBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                if (isCooldown) {
+                    return;
+                }
+
+                // +1 скачивание
+                downloadCount += 1;
+                downloadCounter.textContent = downloadCount.toLocaleString();
+
+                // Анимация числа
+                downloadCounter.classList.add('increment');
+                setTimeout(() => {
+                    downloadCounter.classList.remove('increment');
+                }, 600);
+
+                // Конфетти эффект
+                const rect = btn.getBoundingClientRect();
+                confetti({
+                    particleCount: 80,
+                    spread: 80,
+                    startVelocity: 40,
+                    origin: {
+                        x: (rect.left + rect.width / 2) / window.innerWidth,
+                        y: (rect.top + rect.height / 2) / window.innerHeight
+                    },
+                    colors: ['#ff4654', '#00d4ff', '#00ffff', '#6b5dff'],
+                    gravity: 0.8,
+                    ticks: 300
+                });
+
+                // Вторая волна конфетти
+                setTimeout(() => {
+                    confetti({
+                        particleCount: 50,
+                        spread: 60,
+                        startVelocity: 30,
+                        origin: {
+                            x: (rect.left + rect.width / 2) / window.innerWidth,
+                            y: (rect.top + rect.height / 2) / window.innerHeight
+                        },
+                        colors: ['#ff4654', '#6b5dff'],
+                    });
+                }, 200);
+
+                // Анимация пульса кнопки
+                btn.classList.add('downloading');
+                setTimeout(() => {
+                    btn.classList.remove('downloading');
+                }, 600);
+
+                // Запуск кулдауна
+                startCooldown();
+            });
+        });
+
+        // ===== Мобильное меню =====
+        const burger = document.getElementById('burger');
+        const navLinks = document.querySelector('.nav-links');
+
+        burger.addEventListener('click', () => {
+            const isVisible = navLinks.style.display === 'flex';
+            navLinks.style.display = isVisible ? 'none' : 'flex';
+            if (!isVisible) {
+                Object.assign(navLinks.style, {
+                    position: 'absolute',
+                    top: '70px',
+                    left: '0',
+                    right: '0',
+                    flexDirection: 'column',
+                    background: 'rgba(10, 14, 39, 0.95)',
+                    padding: '24px',
+                    gap: '20px',
+                    backdropFilter: 'blur(25px)',
+                    zIndex: '1000'
+                });
+            }
+        });
+
+        // ===== Canvas 3D вихрь частиц для Roblox =====
+        const canvas = document.getElementById('vortex-canvas-3d');
+        const ctx = canvas.getContext('2d');
+        const header = document.querySelector('header');
+
+        function resizeCanvas() {
+            canvas.width = header.offsetWidth;
+            canvas.height = header.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const particles = [];
+        const particleCount = 120;
+        const colors = ['#ff4654', '#00d4ff', '#00ffff', '#6b5dff', '#00ffd1'];
+
+        class Particle3D {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.angle = Math.random() * Math.PI * 2;
+                this.radius = Math.random() * (Math.min(canvas.width, canvas.height) / 2.5);
+                this.speed = 0.0018 + Math.random() * 0.0045;
+                this.radiusSpeed = 0.12 + Math.random() * 0.28;
+                this.size = Math.random() * 2.5 + 0.8;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.opacity = Math.random() * 0.6 + 0.25;
+                this.rotationZ = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+            }
+
+            update() {
+                this.angle += this.speed;
+                this.radius -= this.radiusSpeed;
+                this.rotationZ += this.rotationSpeed;
+
+                if (this.radius < 0) this.reset();
+            }
+
+            draw(ctx) {
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+                const x = cx + Math.cos(this.angle) * this.radius;
+                const y = cy + Math.sin(this.angle) * this.radius * 0.7;
+
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(this.rotationZ);
+
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.opacity * (1 - this.radius / (Math.min(canvas.width, canvas.height) / 2.5));
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+
+                ctx.restore();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle3D());
+        }
+
+        function animateVortex3D() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const gradient = ctx.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 0,
+                canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 2
+            );
+            gradient.addColorStop(0, 'rgba(0, 212, 255, 0.05)');
+            gradient.addColorStop(1, 'rgba(107, 93, 255, 0.02)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw(ctx);
+            });
+
+            requestAnimationFrame(animateVortex3D);
+        }
+        animateVortex3D();
+    </script>
+
+</body>
+</html>
